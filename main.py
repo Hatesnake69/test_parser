@@ -6,7 +6,8 @@ from threading import Thread
 
 import requests
 from bs4 import BeautifulSoup
-
+from models import KolesaOrderModel, OlxOrderModel
+from db import session
 
 from selenium.webdriver.common.by import By
 
@@ -43,14 +44,16 @@ class OlxDataLoader(Thread):
             dict_of_page = {}
             try:
                 price_element = driver.find_element(
-                    By.XPATH, '//*[@id="root"]/div[1]/div[3]/div[3]/div[1]/div[2]/div[3]/h3'
+                    By.XPATH,
+                    '//*[@id="root"]/div[1]/div[3]/div[3]/div[1]/div[2]/div[3]/h3',
                 )
                 dict_of_page["price"] = price_element.text
             except:
                 dict_of_page["price"] = None
             try:
                 device_name = driver.find_element(
-                    By.XPATH, '//*[@id="root"]/div[1]/div[3]/div[3]/div[1]/div[2]/div[2]/h1'
+                    By.XPATH,
+                    '//*[@id="root"]/div[1]/div[3]/div[3]/div[1]/div[2]/div[2]/h1',
                 )
                 dict_of_page["device_name"] = device_name.text
             except:
@@ -84,11 +87,22 @@ class OlxDataLoader(Thread):
             driver.close()
 
             print(dict_of_page)
+            session.add(
+                OlxOrderModel(
+                    url=url,
+                    price=dict_of_page["price"],
+                    device_name=dict_of_page["device_name"],
+                    seller_name=dict_of_page["seller_name"],
+                    description=dict_of_page["description"],
+                    phone_number=dict_of_page["phone_number"],
+                )
+            )
+            session.commit()
 
             if index % 10 == 0 and index != 0:
                 time.sleep(300)
 
-            if len(dict_of_data) == 50:
+            if len(dict_of_data) == 3:
                 break
 
         with open("olx_data.json", "w+", encoding="utf-8") as outfile:
@@ -176,11 +190,20 @@ class KolesaDataLoader(Thread):
             driver.close()
 
             print(dict_of_page)
-
+            session.add(
+                KolesaOrderModel(
+                    url=url,
+                    price=dict_of_page["price"],
+                    item_name=dict_of_page["item_name"],
+                    description=dict_of_page["description"],
+                    phone_number=dict_of_page["phone_number"],
+                )
+            )
+            session.commit()
             if index % 10 == 0 and index != 0:
                 time.sleep(300)
 
-            if len(dict_of_data) == 50:
+            if len(dict_of_data) == 3:
                 break
 
         with open("auto_data.json", "w+", encoding="utf-8") as outfile:
